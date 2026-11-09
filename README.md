@@ -64,7 +64,7 @@ uv run printdock status
 uv run printdock print "C:\Photos\photo.jpg"
 ```
 
-To make `printdock` available outside this checkout, run `uv tool install --editable .`. See [CLI usage](docs/cli.md) for image fitting, previews, and printer selection.
+To make `printdock` available outside this checkout, run `uv tool install --editable .`. Printing opens an interactive crop editor before connecting. See [CLI usage](docs/cli.md) for the editor, previews, automation, and printer selection.
 
 ### Use the native macOS CLI
 ```

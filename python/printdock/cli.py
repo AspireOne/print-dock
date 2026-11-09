@@ -38,8 +38,10 @@ def parser() -> argparse.ArgumentParser:
     status.add_argument("--generation", type=int, choices=(1, 2), default=2)
     prepare = commands.add_parser("prepare", parents=[image], help="Save a printable JPEG for review without Bluetooth")
     prepare.add_argument("--output", type=Path, required=True)
+    prepare.add_argument("--edit", action="store_true", help="Choose the crop in the GUI before saving")
     send = commands.add_parser("print", parents=[connection, image], help="Send one image and verify printer completion")
     send.add_argument("--generation", type=int, choices=(1, 2), default=2)
+    send.add_argument("--no-edit", action="store_true", help="Skip the crop GUI and use automatic fitting (for scripts)")
     send.add_argument("--pace", type=int, default=12, help="Milliseconds between packets")
     send.add_argument("--print-timeout", type=positive_seconds, default=180, help="Total upload/processing deadline in seconds")
     return root
@@ -48,15 +50,27 @@ def parser() -> argparse.ArgumentParser:
 async def run(args: argparse.Namespace) -> None:
     jpeg = None
     if args.command in {"prepare", "print"}:
-        jpeg = printable_jpeg(args.image, fit=args.fit, quality=args.quality, orientation=args.orientation)
+        if args.command == "prepare" and args.output.resolve() == args.image.resolve():
+            raise ValueError("Choose an output path different from the source image")
+        if args.command == "print" and args.pace < 0:
+            raise ValueError("Pace must be nonnegative")
+        interactive = args.command == "print" and not args.no_edit or args.command == "prepare" and args.edit
+        if interactive:
+            try:
+                from .editor import edit_jpeg
+            except ImportError as error:
+                raise RuntimeError("The crop editor needs Python with Tk support. Install Tk, or use print --no-edit for automatic fitting.") from error
+            jpeg = edit_jpeg(args.image, fit=args.fit, quality=args.quality, orientation=args.orientation,
+                             action="Print" if args.command == "print" else "Save preview")
+            if jpeg is None:
+                print("CANCELLED")
+                return
+        else:
+            jpeg = printable_jpeg(args.image, fit=args.fit, quality=args.quality, orientation=args.orientation)
         if args.command == "prepare":
-            if args.output.resolve() == args.image.resolve():
-                raise ValueError("Choose an output path different from the source image")
             args.output.write_bytes(jpeg)
             print(f"PREPARED {args.output} {IMAGE_SIZE[0]}x{IMAGE_SIZE[1]} {len(jpeg)} bytes")
             return
-        if args.pace < 0:
-            raise ValueError("Pace must be nonnegative")
     if args.command == "scan":
         devices = await discover(args.timeout, args.prefix, args.address)
         if not devices:
@@ -97,11 +111,15 @@ async def run(args: argparse.Namespace) -> None:
             else:
                 print("STARTABLE true")
         else:
-            await send_print(
-                client, jpeg, generation=args.generation, pace_ms=args.pace,
-                timeout=args.print_timeout,
-                progress=lambda percent: print(f"PROGRESS {percent}%", flush=True),
-            )
+            try:
+                await send_print(
+                    client, jpeg, generation=args.generation, pace_ms=args.pace,
+                    timeout=args.print_timeout,
+                    progress=lambda percent: print(f"PROGRESS {percent}%", flush=True),
+                )
+            except BaseException:
+                logging.error("Check the printer before retrying; it may have received part or all of the job.")
+                raise
             print("PRINT_DONE", flush=True)
 
 
@@ -116,6 +134,4 @@ def main() -> None:
     except Exception as error:
         detail = "Timed out before verified completion" if isinstance(error, TimeoutError) else str(error) or type(error).__name__
         print(f"ERROR {detail}", file=sys.stderr)
-        if args.command == "print":
-            print("Check the printer before retrying; it may have received part or all of the job.", file=sys.stderr)
         raise SystemExit(1)

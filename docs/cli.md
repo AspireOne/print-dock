@@ -30,7 +30,11 @@ printdock status
 printdock print "C:\Photos\photo.jpg"
 ```
 
-Landscape photos automatically use the long edge. The default `--fit cover` fills the sheet and crops centrally. Use `--fit contain` to preserve the whole photo with white margins. `--orientation portrait` or `--orientation landscape` overrides automatic orientation.
+`print` opens a crop editor before Bluetooth connects. Drag the image to position it, scroll to zoom around the pointer, or enter a zoom percentage. With the image focused, arrow keys move it by one output pixel; Shift moves ten. The frame uses the printer raster's exact aspect ratio, with an optional thirds grid and dimmed surroundings. Switching orientation changes the frame; **Fill frame** and **Fit whole photo** reset the composition. The editor also shows the source crop coordinates and indicates when the selection requires upscaling.
+
+Click **Print** to approve the crop and start connecting, or **Cancel** / Escape / close the window to stop without Bluetooth discovery. Wake the printer before approving if it has gone to sleep while editing. The displayed crop is decoded from the exact final JPEG that is sent; it is not cropped or encoded again after approval. Screen colors and the printer's physical edge tolerances are not calibrated by this preview.
+
+Landscape photos initially use the long edge. `--fit cover` starts with a centered crop that fills the frame; `--fit contain` starts with the whole photo and white margins. `--orientation portrait` or `--orientation landscape` sets the initial orientation. These are starting points that you can change in the editor.
 
 ```powershell
 printdock print "C:\Photos\photo.jpg" --fit contain
@@ -42,7 +46,15 @@ Preview the prepared JPEG without connecting or consuming paper:
 printdock prepare "C:\Photos\photo.jpg" --fit contain --output "C:\Photos\preview.jpg"
 ```
 
-Use the same fitting, orientation, and quality options when printing the original. Prepared JPEGs always have the printer's portrait raster orientation, so landscape previews appear rotated. Images are EXIF-oriented, converted from embedded color profiles to sRGB, flattened onto white, and rendered to the protocol dimensions. JPEG quality defaults to 98 with no chroma subsampling.
+Add `--edit` to choose a crop interactively and save it without printing:
+
+```powershell
+printdock prepare "C:\Photos\photo.jpg" --edit --output "C:\Photos\preview.jpg"
+```
+
+The editor requires Python with Tk support (included in the tested Windows installation). If it cannot open, the command fails without printing. For scripts, `print --no-edit` explicitly skips the editor and uses automatic fitting. Plain `prepare` also remains noninteractive.
+
+Prepared JPEGs always have the printer's portrait raster orientation, so landscape previews appear rotated. Images are EXIF-oriented, converted from embedded color profiles to sRGB, flattened onto white, and rendered to the protocol dimensions. JPEG quality defaults to 98 with no chroma subsampling.
 
 ## Printer selection and diagnostics
 
