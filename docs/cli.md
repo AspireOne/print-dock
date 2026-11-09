@@ -1,6 +1,6 @@
 # printdock CLI
 
-The portable Python CLI supports Windows Bluetooth through Bleak. It has been verified with a Hi-Print 2×3 Gen 2 on Windows 11. Its macOS and Linux backends, and printing on Gen 1 hardware, have not been verified here. The native Swift CLI remains available on macOS.
+The portable Python CLI provides Bluetooth printing, interactive cropping, and Windows File Explorer integration. See the [platform and printer support table](../README.md#platform-and-printer-support) for verified hardware and platform combinations. The native Swift CLI is documented separately below.
 
 ## Install the Python CLI
 
@@ -89,7 +89,7 @@ Use an address reported by `scan` (a peripheral UUID on macOS). Without an addre
 
 Connection commands accept `--timeout` (12 seconds by default) and `--prefix` (`Hi-Print` by default). `print` additionally accepts `--pace` (12 milliseconds between packets) and `--print-timeout` (180 seconds for upload and processing). Logs go to stderr; command results and transfer progress go to stdout.
 
-`PROGRESS 100%` means upload finished. `PRINT_DONE` requires observed processing followed by a fresh ready status. A failed or interrupted transfer is never automatically retried: inspect the printer before resending because it may already have received the job.
+`PROGRESS 100%` means upload finished. `PRINT_DONE` requires observed processing followed by a fresh ready status. If the printer remains off, discovery ends at the scan timeout with a no-printer-found error; the Explorer launcher closes its progress window and shows an error dialog. A failed or interrupted transfer is never automatically retried: inspect the printer before resending because it may already have received the job.
 
 ## Native macOS CLI
 

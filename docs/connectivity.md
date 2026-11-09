@@ -1,6 +1,6 @@
-# PrintDockKit (Connectivity)
+# Hi-Print connectivity
 
-PrintDockKit provides the BLE connectivity layer for the Polaroid Hi·Print 2×3.
+Print Dock contains two BLE clients for the Polaroid Hi·Print 2×3: the original macOS PrintDockKit implementation and this fork's portable Python client, verified with Gen 2 on Windows 11. The [support table](../README.md#platform-and-printer-support) distinguishes the supported and untested combinations.
 
 The portable Python client in `python/printdock` implements the same packet contract through Bleak. For installation and everyday use, see [CLI usage](cli.md).
 
@@ -26,10 +26,9 @@ Phase `0x00` alone cannot distinguish initial idle from in-job preparation. The 
 
 Phase `0x05` also occurred before the print layers; its meaning remains unknown. Other bytes are preserved without assigning unverified battery, paper-count, temperature, or firmware meanings. A second job, fault recovery, alternate firmware, and native macOS Gen 2 behavior have not been hardware-tested. Android app analysis or an HCI capture may help with those remaining protocol details, but is unnecessary for the verified Windows print path.
 
-For a detailed AI-agent handoff (state machine, packet protocol, failure signatures, and troubleshooting runbook), see:
-- `docs/agent-connectivity-deep-dive.md`
+## Native macOS API
 
-## Core API
+For the Swift client's state machine, packet protocol, and troubleshooting runbook, see the [native connectivity deep dive](agent-connectivity-deep-dive.md).
 
 ```swift
 import PrintDockKit
@@ -46,14 +45,14 @@ case .rejected(let reason):
 }
 ```
 
-## Notes
+### Native client behavior
 
 - The printer auto-sleeps quickly. Expect to power it on right before connecting.
 - Connect uses a service-filtered scan first, then falls back to name matching.
 - The last successful peripheral UUID is reused to speed up reconnects.
 - `lastStatus` is polled once per second once connected and GATT-ready.
 
-## Troubleshooting
+### Native client troubleshooting
 
 - **Bluetooth permissions**: the app must declare Bluetooth usage strings.
 - **No device found**: confirm the printer is in pairing mode and within range.

@@ -9,11 +9,7 @@ Thanks for your interest in Print Dock!
 
 ## Development
 
-```
-./scripts/verify.sh
-```
-
-If you don’t have Xcode installed, tests will be skipped.
+Run the checks for the implementation you change: see [Validation](README.md#validation) for the Python CLI and Windows integration, and for the native macOS targets.
 
 ## Pull requests
 - Keep changes focused and well‑scoped
