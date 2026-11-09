@@ -18,7 +18,27 @@ uv tool install --editable .
 printdock --help
 ```
 
-The editable installation uses this checkout. Keep it in place; rerun the installation if dependencies change.
+The editable installation uses this checkout. Keep it in place; rerun the installation if dependencies or command entry points change.
+
+## Windows image context menu
+
+After installing the tool, register the image command for your Windows account:
+
+```powershell
+printdock context-menu install
+```
+
+Right-click one image in File Explorer, choose **Show more options**, then **Print using Hi-Print**. The crop editor opens without a terminal. Approving the crop starts the same verified print flow as the CLI, with a progress window and visible error messages. Cancelling the crop stops without connecting. Closing the progress window while a job runs hides it and lets that job finish; it reappears on completion.
+
+This is a standard static Explorer verb in the current user's image associations, so it needs no administrator access and does not change the default image app. It uses Gen 2 and the same automatic printer discovery as the CLI. Only one selected image is supported per invocation. The launcher writes rotating diagnostic logs to `%LOCALAPPDATA%\PrintDock\printdock.log`.
+
+To remove the entry:
+
+```powershell
+printdock context-menu uninstall
+```
+
+After moving the checkout or reinstalling the tool, rerun the install command to refresh its launcher path. Uninstall the menu before removing the tool entirely.
 
 ## Everyday printing
 

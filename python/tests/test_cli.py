@@ -87,7 +87,7 @@ def test_default_print_transports_exact_approved_jpeg(monkeypatch, capsys):
         pass
 
     monkeypatch.setattr("printdock.printer.BleakScanner.discover", scan)
-    monkeypatch.setattr(cli, "BleakClient", BluetoothConnection)
+    monkeypatch.setattr("printdock.printer.BleakClient", BluetoothConnection)
     monkeypatch.setattr("printdock.printer.asyncio.sleep", no_delay)
     asyncio.run(cli.run(cli.parser().parse_args(["print", "photo.png", "--pace", "0"])))
     assert b"".join(frame[5:] for frame in written[1:]) == approved

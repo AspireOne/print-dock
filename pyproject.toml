@@ -12,6 +12,9 @@ dependencies = ["bleak>=3.1,<4", "Pillow>=12,<13"]
 [project.scripts]
 printdock = "printdock.cli:main"
 
+[project.gui-scripts]
+printdock-hi-print = "printdock.windows_shell:main"
+
 [dependency-groups]
 dev = ["pytest>=8,<10"]
 

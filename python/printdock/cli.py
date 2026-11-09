@@ -9,7 +9,7 @@ from pathlib import Path
 from bleak import BleakClient
 
 from .imaging import printable_jpeg
-from .printer import discover, read_status, select_device, send_print
+from .printer import discover, print_jpeg, read_status, select_device
 from .protocol import IMAGE_SIZE, SERVICE_UUID, STATUS_UUID
 
 
@@ -44,10 +44,21 @@ def parser() -> argparse.ArgumentParser:
     send.add_argument("--no-edit", action="store_true", help="Skip the crop GUI and use automatic fitting (for scripts)")
     send.add_argument("--pace", type=int, default=12, help="Milliseconds between packets")
     send.add_argument("--print-timeout", type=positive_seconds, default=180, help="Total upload/processing deadline in seconds")
+    menu = commands.add_parser("context-menu", help="Install or remove the Windows image context menu for this user")
+    menu.add_argument("action", choices=("install", "uninstall"))
     return root
 
 
 async def run(args: argparse.Namespace) -> None:
+    if args.command == "context-menu":
+        from .windows_shell import install_context_menu, uninstall_context_menu
+        if args.action == "install":
+            install_context_menu()
+            print('Installed: image > Show more options > Print using Hi-Print')
+        else:
+            uninstall_context_menu()
+            print("Hi-Print context menu removed")
+        return
     jpeg = None
     if args.command in {"prepare", "print"}:
         if args.command == "prepare" and args.output.resolve() == args.image.resolve():
@@ -77,6 +88,12 @@ async def run(args: argparse.Namespace) -> None:
             raise RuntimeError("No Hi-Print found. Wake the printer and disconnect the phone app, then try again.")
         for device in devices:
             print(f"FOUND {device.address} {device.name}")
+        return
+    if args.command == "print":
+        await print_jpeg(jpeg, timeout=args.timeout, prefix=args.prefix, address=args.address,
+                         generation=args.generation, pace_ms=args.pace, print_timeout=args.print_timeout,
+                         progress=lambda percent: print(f"PROGRESS {percent}%", flush=True))
+        print("PRINT_DONE", flush=True)
         return
     device = await select_device(args.timeout, args.prefix, args.address)
     logging.info("Connecting to %s %s", device.name, device.address)
@@ -110,17 +127,6 @@ async def run(args: argparse.Namespace) -> None:
                 print("STARTABLE false")
             else:
                 print("STARTABLE true")
-        else:
-            try:
-                await send_print(
-                    client, jpeg, generation=args.generation, pace_ms=args.pace,
-                    timeout=args.print_timeout,
-                    progress=lambda percent: print(f"PROGRESS {percent}%", flush=True),
-                )
-            except BaseException:
-                logging.error("Check the printer before retrying; it may have received part or all of the job.")
-                raise
-            print("PRINT_DONE", flush=True)
 
 
 def main() -> None:

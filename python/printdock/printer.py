@@ -47,6 +47,24 @@ async def read_status(client: BleakClient) -> PrinterStatus:
     return PrinterStatus(bytes(await client.read_gatt_char(STATUS_UUID, use_cached=False)))
 
 
+async def print_jpeg(
+    jpeg: bytes, *, timeout: float = 12, prefix: str = "Hi-Print", address: str | None = None,
+    generation: int = 2, pace_ms: int = 12, print_timeout: float = 180,
+    progress: Callable[[int], None] = lambda percent: None,
+) -> None:
+    device = await select_device(timeout, prefix, address)
+    logger.info("Connecting to %s %s", device.name, device.address)
+    async with BleakClient(device, timeout=timeout, winrt={"use_cached_services": False}) as client:
+        if client.services.get_service(SERVICE_UUID) is None:
+            raise RuntimeError("Hi-Print service missing; this device does not match the known protocol")
+        try:
+            await send_print(client, jpeg, generation=generation, pace_ms=pace_ms,
+                             timeout=print_timeout, progress=progress)
+        except BaseException:
+            logger.error("Check the printer before retrying; it may have received part or all of the job.")
+            raise
+
+
 async def send_print(
     client: BleakClient,
     jpeg: bytes,
