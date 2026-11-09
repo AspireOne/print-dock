@@ -3,6 +3,8 @@
 This document is the technical handoff for troubleshooting and extending the Hi-Print BLE stack in this repo.
 It is intentionally implementation-heavy and maps directly to source files.
 
+This document describes the native Swift stack. For the portable Python CLI and the hardware-verified Gen 2 status differences, see [connectivity](connectivity.md); command usage lives in [CLI usage](cli.md).
+
 ## Scope
 
 - Connectivity layer: `Sources/PrintDockKit`

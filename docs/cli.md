@@ -1,25 +1,72 @@
 # printdock CLI
 
-The CLI is a lightweight wrapper around PrintDockKit.
+The portable Python CLI supports Windows Bluetooth through Bleak. It has been verified with a Hi-Print 2×3 Gen 2 on Windows 11. Its macOS and Linux backends, and printing on Gen 1 hardware, have not been verified here. The native Swift CLI remains available on macOS.
 
-## Commands
+## Install the Python CLI
 
+From the repository, using [uv](https://docs.astral.sh/uv/getting-started/installation/):
+
+```powershell
+uv sync
+uv run printdock --help
 ```
-printdock scan [--prefix "Hi-Print"] [--timeout 12]
-printdock status [--prefix "Hi-Print"] [--timeout 12]
-printdock print /path/to/photo.jpg [--prefix "Hi-Print"] [--timeout 12] [--pace 12]
+
+For a command available from any directory:
+
+```powershell
+uv tool install --editable .
+printdock --help
 ```
 
-## Examples
+The editable installation uses this checkout. Keep it in place; rerun the installation if dependencies change.
 
+## Everyday printing
+
+Wake the printer immediately before connecting. Disconnect the phone app if it holds the Bluetooth connection.
+
+```powershell
+printdock scan
+printdock status
+printdock print "C:\Photos\photo.jpg"
 ```
+
+Landscape photos automatically use the long edge. The default `--fit cover` fills the sheet and crops centrally. Use `--fit contain` to preserve the whole photo with white margins. `--orientation portrait` or `--orientation landscape` overrides automatic orientation.
+
+```powershell
+printdock print "C:\Photos\photo.jpg" --fit contain
+```
+
+Preview the prepared JPEG without connecting or consuming paper:
+
+```powershell
+printdock prepare "C:\Photos\photo.jpg" --fit contain --output "C:\Photos\preview.jpg"
+```
+
+Use the same fitting, orientation, and quality options when printing the original. Prepared JPEGs always have the printer's portrait raster orientation, so landscape previews appear rotated. Images are EXIF-oriented, converted from embedded color profiles to sRGB, flattened onto white, and rendered to the protocol dimensions. JPEG quality defaults to 98 with no chroma subsampling.
+
+## Printer selection and diagnostics
+
+```powershell
+printdock status --address "F8:5B:1B:A0:4A:FE"
+printdock inspect --address "F8:5B:1B:A0:4A:FE"
+```
+
+Use an address reported by `scan` (a peripheral UUID on macOS). Without an address, multiple matching printers cause an error rather than an arbitrary selection. `inspect` emits JSON containing services, characteristic properties, negotiated write sizes, and raw status. It sends no print commands.
+
+`status` reports raw bytes, phase, issue, `READY`, and `STARTABLE`. `READY` means the completed-job ready phase; `STARTABLE` also recognizes Gen 2's observed initial idle state. The default generation is 2. Use `--generation 1` with `status` or `print` for the stricter Gen 1 preflight policy. See [connectivity](connectivity.md) for the validated status observations and their limits.
+
+Connection commands accept `--timeout` (12 seconds by default) and `--prefix` (`Hi-Print` by default). `print` additionally accepts `--pace` (12 milliseconds between packets) and `--print-timeout` (180 seconds for upload and processing). Logs go to stderr; command results and transfer progress go to stdout.
+
+`PROGRESS 100%` means upload finished. `PRINT_DONE` requires observed processing followed by a fresh ready status. A failed or interrupted transfer is never automatically retried: inspect the printer before resending because it may already have received the job.
+
+## Native macOS CLI
+
+The Swift CLI wraps PrintDockKit:
+
+```sh
 swift run printdock scan
 swift run printdock status
 swift run printdock print ~/Pictures/photo.jpg
 ```
 
-## Notes
-
-- The CLI reconnects to the last successful printer when possible.
-- Printing uses a fixed 2×3 portrait output and centered placement.
-- Print completion waits at least 90 seconds internally, even if a smaller `--timeout` is passed.
+It accepts `--prefix`, `--timeout`, and `--pace` for printing. It reconnects to the last successful peripheral when possible, uses centered portrait cropping, and waits at least 90 seconds for completion. Python-only options above do not apply to the Swift executable. Its Gen 1 status policy is documented in the [native connectivity deep dive](agent-connectivity-deep-dive.md).
